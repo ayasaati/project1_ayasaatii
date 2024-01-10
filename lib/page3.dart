@@ -1,11 +1,24 @@
 import 'package:flutter/material.dart';
 import 'reservation.dart';
 import 'page2.dart';
+import 'package:encrypted_shared_preferences/encrypted_shared_preferences.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert' as convert;
+const String _baseURL='https://ayasaatiliu.000webhostapp.com';
+const String _baseeURL = 'ayasaatiliu.000webhostapp.com';
+final List<String> _customers = [];
+bool _load=false;
 class Page3 extends StatefulWidget {
-  Page3({ super.key,required this.name,required this.phonenb,required this.nbofNights });
-  final String name;
- final int phonenb;
- final int nbofNights;
+  Page3({ super.key,required this.fname,required this.lname,required this.phonenb });
+  final String fname;
+  final String lname;
+ final String phonenb;
+  Map<String, String> temporaryArguments = {};
+ final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+ //final int nbofNights;
+
 
 
   @override
@@ -13,10 +26,14 @@ class Page3 extends StatefulWidget {
 }
 
 class _Page3State extends State<Page3> {
-
+  final TextEditingController _controllernbofnights = TextEditingController();
+  bool _loading = false;
+  bool _load=false;
   String bundle='Luxury';
   int bundleprice=100;
   final TextEditingController radioController = TextEditingController();
+  Map<String, String> temporaryArguments = {};
+  final GlobalKey<FormState> _formKeyy = GlobalKey<FormState>();
   List<Reservation> dropdownItems = [
     Reservation(roomtype: 'Single', price: 30),
     Reservation(roomtype: 'Double', price: 50),
@@ -28,6 +45,38 @@ class _Page3State extends State<Page3> {
   bool tennisSelected=false;
   final TextEditingController dropdownController = TextEditingController();
   String image = 'assets/resort.jpeg';
+  int  spaFee=0;
+  int tennisFee=0;
+  int gymFee=0;
+ int totalPrice=0;
+
+  void update(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    setState(() {
+      _loading = false;
+    });
+  }
+
+
+  void update1(bool success) {
+    setState(() {
+      _load = true; // show product list
+      if (!success) { // API request failed
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('failed to load data')));
+      }
+    });
+  }
+
+
+  @override
+  void initState() {
+    // update data when the widget is added to the tree the first tome.
+  displayCustomers(update1);
+  displayCustomersResort(update1);
+    super.initState();
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,7 +87,7 @@ class _Page3State extends State<Page3> {
             child: AppBar(
 
 
-                title:Text('Welcome ${widget.name} Choose Your Bundle'),
+                title:Text('Welcome ${widget.fname} ${widget.lname}! Choose Your Bundle'),
                 backgroundColor:Colors.brown[700],
                 shadowColor: Colors.black
 
@@ -57,9 +106,16 @@ class _Page3State extends State<Page3> {
         reverse:true,
         child: Column(
          mainAxisAlignment: MainAxisAlignment.center,
-       children: [
 
 
+    children:[
+         SizedBox(height:10),
+         Text("Enter The number of Nights:",textAlign: TextAlign.start),
+         const SizedBox(height:15),
+         SizedBox(width:300,height:60,
+           child:TextField(controller:_controllernbofnights,keyboardType: TextInputType.number,decoration:const InputDecoration(border:OutlineInputBorder(),hintText: 'Enter nb of nights')),
+         ),
+         SizedBox(height:10),
         Text('Choose Your Bundle:'),
         RadioListTile(
          title: Text('Luxury Bundle (\$100 per night)'),
@@ -108,26 +164,33 @@ class _Page3State extends State<Page3> {
         Checkbox(value:spaSelected,onChanged:(bool?value){
           setState((){
            spaSelected= value as bool;
-
+           spaFee = spaSelected ?20:0;
     });
-    })]),const SizedBox(height:20),Row( children:[
+    })]), SizedBox(height:20),Row( children:[
            Text('Add Tennis Court(\$40 per night)',style:TextStyle(fontSize:18.0)),
            Checkbox(value:tennisSelected,onChanged:(bool?value){
              setState((){
                tennisSelected= value as bool;
-
+               tennisFee = tennisSelected ?40:0;
              });
            })]),const SizedBox(height:20),Row( children:[
           Text('Add Gym Activities(\$60 per night)',style:TextStyle(fontSize:18.0)),
           Checkbox(value:gymSelected,onChanged:(bool?value){
             setState((){
               gymSelected= value as bool;
-
+              gymFee = gymSelected ?60:0;
             });
+
           })])
-    ,const SizedBox(height:20)
+    , SizedBox(height:20)
     ,ElevatedButton(
-    onPressed: () {
+    onPressed: () {int? nbofNights; nbofNights= int.parse(_controllernbofnights.text).toInt();
+    if(bundle=='Luxury'){
+    totalPrice=((100+room.price+spaFee+tennisFee+gymFee)*nbofNights);
+    }
+    else{
+    totalPrice=((200+room.price+spaFee+tennisFee+gymFee)*nbofNights);
+    }
     showDialog(context: context, builder: (context)=>AlertDialog(
       actions:[
         TextButton(
@@ -141,36 +204,80 @@ class _Page3State extends State<Page3> {
       contentPadding:const EdgeInsets.all(20.0),
       content:const Text('Your hotel residence has been booked successfully!')
     ));
+    }
 
-    },
-    child:const Text('Book Now!'),style: const ButtonStyle(
+     /* Navigator.push(
+          context,
+          MaterialPageRoute(
+
+              builder: (context) =>
+                  DisplayPage(bundle: bundle,
+                      radioValue: radioController.text,
+                      dropdownValue: room,
+                      bundleprice: bundleprice,
+                      spaSelected: spaSelected,
+                      tennisSelected: tennisSelected,
+                      gymSelected: gymSelected,
+                      fname: widget.fname,
+                      lname: widget.lname,
+                      phonenb: widget.phonenb,
+                      nbofNights: nbofNights)));
+    }}*/
+    ,child:const Text('Book Now!'),style: const ButtonStyle(
     backgroundColor: MaterialStatePropertyAll<Color>(Colors.brown),
 
     ),
     ),
     const SizedBox(height:20),
     ElevatedButton(
-    onPressed: () {Navigator.push(
-        context,
-        MaterialPageRoute(
-        builder: (context) => DisplayPage(
-        bundle: bundle,
-        radioValue: radioController.text,
-        dropdownValue: room,
-        bundleprice: bundleprice,
-        spaSelected:spaSelected,
-        tennisSelected:tennisSelected,
-        gymSelected:gymSelected,
-        name:widget.name,
-        phonenb:widget.phonenb,
-        nbofNights:widget.nbofNights,
-    ),
-    ),
-    );
+    onPressed: () {int? nbofNights = int.tryParse(_controllernbofnights.text);
 
-    },child:const Text('View Booking Information=>'),style: const ButtonStyle(
+      if (nbofNights!=null) {
+        insertBooking(update,radioController.text,dropdownController.text,spaFee,tennisFee,gymFee,totalPrice);
+      }
+
+
+
+    else{
+      ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+      content: Text('Please Enter You Desired Number of Nights'),
+      duration: Duration(seconds: 2), // Adjust the duration as needed
+      ));
+
+      }
+    }
+
+    ,child:const Text('Submit!'),style: const ButtonStyle(
       backgroundColor: MaterialStatePropertyAll<Color>(Colors.brown),))
-         ,const SizedBox(height: 20)
+         ,const SizedBox(height: 20),
+      ElevatedButton(
+          onPressed: () {
+
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+
+                builder: (context) =>
+            DisplayLuxury()));
+          }
+
+          ,child:const Text('Display The Luxury Bookings!'),style: const ButtonStyle(
+        backgroundColor: MaterialStatePropertyAll<Color>(Colors.brown),))
+      ,const SizedBox(height: 20),
+      ElevatedButton(
+          onPressed: () {
+
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+
+                    builder: (context) =>
+                        DisplayResort()));
+          }
+
+          ,child:const Text('Display The Resort Bookings!'),style: const ButtonStyle(
+        backgroundColor: MaterialStatePropertyAll<Color>(Colors.brown),))
     ],
     ),))
     ));
@@ -180,10 +287,10 @@ class _Page3State extends State<Page3> {
   void dispose() {
     radioController.dispose();
     dropdownController.dispose();
+    _controllernbofnights.dispose();
     super.dispose();
   }
 }
-
 
 
 
@@ -195,8 +302,9 @@ class DisplayPage extends StatelessWidget {
   final int bundleprice;
   bool spaSelected,tennisSelected,gymSelected;
   int spaFee=0,tennisFee=0,gymFee=0;
-  final String name;
-  int phonenb;
+  final String fname;
+  final String lname;
+  String phonenb;
   int nbofNights;
 
   int getSpaFee(){
@@ -220,7 +328,7 @@ class DisplayPage extends StatelessWidget {
   }
 
 
-  DisplayPage({required this.bundle,required this.dropdownValue,required this.radioValue,required this.bundleprice,required this.spaSelected,required this.tennisSelected,required this.gymSelected, required this.name,required this.phonenb,required this.nbofNights});
+  DisplayPage({required this.bundle,required this.dropdownValue,required this.radioValue,required this.bundleprice,required this.spaSelected,required this.tennisSelected,required this.gymSelected, required this.fname,required this.lname,required this.phonenb,required this.nbofNights});
 
 
 
@@ -241,7 +349,7 @@ class DisplayPage extends StatelessWidget {
             const SizedBox(height:20),
             Text('You Residence has been booked!',style:TextStyle(fontWeight:FontWeight.bold,fontSize: 20,fontStyle: FontStyle.italic))
             , const SizedBox(height:20)
-            ,Text('Resident Name: $name'),
+            ,Text('Resident Name: $fname $lname'),
             const SizedBox(height:20),
             Text('Phone Number: $phonenb'),
             const SizedBox(height:20),
@@ -263,7 +371,7 @@ class DisplayPage extends StatelessWidget {
             const SizedBox(height:20),
             Text('Total price: \$${getTotalPrice()}')
             //Text('Controller Value: $radiocontrollerValue'),
-          ],
+          ]
         ),
       ),
     );
@@ -274,3 +382,145 @@ class DisplayPage extends StatelessWidget {
 }
 }
 
+
+void insertBooking(Function(String text) update, String bundle, String room,int spaFee,int tennisFee,int gymFee,int totalPrice) async {
+  try {
+    // we need to first retrieve and decrypt the key
+    // send a JSON object using http post
+    final response = await http.post(
+        Uri.parse('$_baseURL/insertBooking.php'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        }, // convert the cid, name and key to a JSON object
+
+        body: convert.jsonEncode(<String, String>{
+          'bundle': bundle, 'room': room, 'spaFee':'$spaFee','tennisFee':'$tennisFee','gymFee':'$gymFee','totalPrice':'$totalPrice'
+        })).timeout(const Duration(seconds: 5));
+    if (response.statusCode == 200) {
+      // if successful, call the update function
+      update(response.body);
+    }
+  }
+  catch(e) {
+    update(e.toString());
+  }
+}
+
+class DisplayLuxury extends StatefulWidget {
+
+  const DisplayLuxury({super.key});
+
+  @override
+  State<DisplayLuxury> createState() => _DisplayLuxury();
+}
+
+class _DisplayLuxury extends State<DisplayLuxury> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: const Text('Available Customers'),
+          centerTitle: true,
+        ),
+        body: _load ? const ListCustomers() : const Center(
+            child: SizedBox(width: 100, height: 100, child: CircularProgressIndicator())
+        )
+    );
+  }
+}
+
+
+
+void displayCustomers(Function(bool success) update1) async {
+  try {
+    final url = Uri.https(_baseeURL, 'displayCustomers.php');
+    final response = await http.get(url)
+        .timeout(const Duration(seconds: 5)); // max timeout 5 seconds
+    _customers.clear(); // clear old products
+    if (response.statusCode == 200) { // if successful call
+      final jsonResponse = convert.jsonDecode(
+          response.body); // create dart json object from json array
+      for (var row in jsonResponse) {
+        if (row['bundle'] =="Luxury"){
+          //  'Luxury') { // iterate over all rows in the json array
+          _customers.add(
+              'bundle: ${row['bundle']} room: ${row['room']} spaFee: int.tryParse(${row['room']}) tennisFee: int.tryParse(${row['tennisFee']})  gymFee: int.tryParse(${row['gymFee']})  totalPrice: ${row['totalPrice']}');
+        }
+      }
+      update1(true); // callback update method to inform that we completed retrieving data
+    }
+  }
+  catch(e) {
+    update1(false); // inform through callback that we failed to get data
+  }
+}
+
+
+class DisplayResort extends StatefulWidget {
+  const DisplayResort({super.key});
+
+  @override
+  State<DisplayResort> createState() => _DisplayResortState();
+}
+
+class _DisplayResortState extends State<DisplayResort> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: const Text('Available Customers'),
+          centerTitle: true,
+        ),
+        body: _load ? const ListCustomers() : const Center(
+            child: SizedBox(width: 100, height: 100, child: CircularProgressIndicator())
+        )
+    );
+  }
+}
+
+
+class ListCustomers extends StatelessWidget {
+  const ListCustomers({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+        itemCount: _customers.length,
+        itemBuilder: (context, index) => Column(children: [
+          const SizedBox(height: 10),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Flexible(child: Text(_customers[index], style: TextStyle(fontSize: 18)))
+          ])
+        ])
+    );
+  }
+}
+
+
+
+
+
+
+void displayCustomersResort(Function(bool success) update1) async {
+  try {
+    final url = Uri.https(_baseeURL, 'displayCustomers.php');
+    final response = await http.get(url)
+        .timeout(const Duration(seconds: 5)); // max timeout 5 seconds
+    _customers.clear(); // clear old products
+    if (response.statusCode == 200) { // if successful call
+      final jsonResponse = convert.jsonDecode(
+          response.body); // create dart json object from json array
+      for (var row in jsonResponse) {
+        if (row['bundle'] =="Resort"){
+          //  'Luxury') { // iterate over all rows in the json array
+          _customers.add(
+              'bundle: ${row['bundle']} room: ${row['room']} spaFee: int.tryParse(${row['room']}) tennisFee: int.tryParse(${row['tennisFee']})  gymFee: int.tryParse(${row['gymFee']})  totalPrice: ${row['totalPrice']}');
+        }
+      }
+      update1(true); // callback update method to inform that we completed retrieving data
+    }
+  }
+  catch(e) {
+    update1(false); // inform through callback that we failed to get data
+  }
+}

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'page2.dart';
+import 'login.dart';
+import 'package:encrypted_shared_preferences/encrypted_shared_preferences.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert' as convert;
+const String _baseURL = 'ayasaatiliu.000webhostapp.com';
 
 class Page1 extends StatefulWidget {
   const Page1({super.key});
@@ -130,10 +136,23 @@ mainAxisAlignment: MainAxisAlignment.center,
               onPressed: () {
                 Navigator.of(context).push(
                     MaterialPageRoute(builder:(context)=>const Page2()));
-                // Add navigation logic or further actions here
+
               },
               //  style:ElevatedButton(backgroun)
-              child: Text('Get Started'),
+              child: Text('Sign Up')),
+                 const SizedBox(height:10),
+      ElevatedButton(
+        style: const ButtonStyle(
+          backgroundColor: MaterialStatePropertyAll<Color>(Colors.brown),
+          //  foregroundColor: MaterialStatePropertyAll<Color>(Colors.black)
+        ),
+        onPressed: () {
+         // Navigator.of(context).push(
+            //  MaterialPageRoute(builder:(context)=>const LoginPage()));
+          Navigator.pushNamed(context, '/LoginPage');
+        },
+
+        child: Text('Already have an Account?Login'),
             ),
         ]),
 
